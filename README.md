@@ -5,6 +5,10 @@ A tiny crummy UI for `xwd`, the X Window Dump utility.
 
 (It takes screenshots.)
 
+It needs Imagemagick to work (it uses the `convert` utility to convert a
+XWD-format file to a PNG).
+
+
 I wrote this primarily for use in CDE, the old Unix desktop. With that said,
 I think it should work on pretty much any X window manager.
 
