@@ -1,5 +1,5 @@
 xwdui
-#####
+-----
 
 A tiny crummy UI for `xwd`, the X Window Dump utility.
 
