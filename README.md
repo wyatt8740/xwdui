@@ -13,11 +13,11 @@ one from the system installation dir (e.g. `/usr/dt/config/C/sys.dtwmrc` ).
 
 To make it work in CDE, I made my `dtwmrc` (`~/.dt/dtwmrc`) look like this:
 
-Keys DtKeyBindings
-{
-    <key>Print                       root|icon|window        f.exec /home/wyatt/bin/xwdui.py
-    [the stuff that was already in this section goes here]
-}
+    Keys DtKeyBindings
+    {
+        <key>Print                       root|icon|window        f.exec /home/wyatt/bin/xwdui.py
+        [the stuff that was already in this section goes here]
+    }
 
 That let me use my "Print Screen" key to take screenshots of windows.
 
