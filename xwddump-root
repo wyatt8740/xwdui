@@ -1,0 +1,12 @@
+#! /bin/ksh
+# args: [destination-dir] [filename]
+# filename is optional. If not given, a timestamp is used instead.
+
+# Written with the intent for use alongside xwdui.py (a GUI interface).
+if [ -z "$2" ]; then
+    FILENAME="$1""/""$(date +'Screenshot at %Y-%m-%d %H-%M-%S')"".png"
+else
+    FILENAME="$1""/""$2"
+fi
+xwd -root | convert xwd:- png:"$FILENAME"
+echo 'Image saved as '"$FILENAME"'.'
