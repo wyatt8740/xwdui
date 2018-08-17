@@ -13,9 +13,10 @@ file. That's the file name set in the poorly-named 'fileName' variable in the
 
 The file should have the format of:
 ````
-[line 1] /path/to/directory/to/save/screenshots/in/
+[line 1] /path/to/directory/to/save/screenshots/in/ [newline]
 [line 2] [empty by default; causes the screenshot program to give screenshots
          timestamps for file names. Alternatively, can be 'filename.png']
+         [ newline, only if line 2 is non-empty ]
 ````
 with a unix-style newline (`\n`) separating the two fields.
 
