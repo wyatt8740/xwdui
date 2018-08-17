@@ -3,8 +3,21 @@ xwdui
 
 A tiny crummy UI for `xwd`, the X Window Dump utility (It takes screenshots).
 
-You will have to change the default path for saving files inside the .py
-scripts, but after that's done it shouldn't need any more tweaks.
+You will have to change the path to the file to save the last run's settings
+in from within the .py scripts. Other than that it shouldn't be too difficult
+to set up. Ask if you have problems.
+
+If you are having it just not start up properly, try forging a 'last run'
+file. That's the file name set in the poorly-named 'fileName' variable in the
+.py scripts.
+
+The file should have the format of:
+````
+[line 1] /path/to/directory/to/save/screenshots/in/
+[line 2] [empty by default; causes the screenshot program to give screenshots
+         timestamps for file names. Alternatively, can be 'filename.png']
+````
+with a unix-style newline (`\n`) separating the two fields.
 
 It needs Imagemagick to work (it uses the `convert` utility to convert a
 XWD-format file to a PNG image).
