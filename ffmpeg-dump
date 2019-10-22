@@ -1,0 +1,123 @@
+#! /bin/ksh93
+# full screen screenshot using ffmpeg x11grab
+# -f: screenshot of entire screen
+# -b: include borders of selected window (default: no decorations)
+
+wininfoattr()
+{
+  # $1 is window id
+  # $2 is attribute to get
+  xwininfo -id "$1" | grep "$2" | sed 's/.*\: *//'
+}
+
+unalias grep 2>/dev/null
+unalias ffmpeg 2>/dev/null
+unalias xwininfo 2>/dev/null
+
+FULL_SCR=0
+WIN_ID=0
+WIDTH=0
+HEIGHT=0
+RESOLUTION=""
+INCLUDE_BORDERS=0
+while [[ "$1" == -* ]]; do
+  case "$1" in
+    '-b' | '--borders' | '-d' | '--decorations')
+      INCLUDE_BORDERS=1
+      ;;
+    '-f' | '--full' | '--fullscreen' )
+      FULL_SCR=1
+      ;;
+  esac
+  shift
+done
+if [[ "$FULL_SCR" -eq 1 ]]; then
+  WIN_ID=`xwininfo -root -int|grep Window\ id|sed 's/.*Window id\: //;s/ .*//'`
+  RESOLUTION=`xwininfo -id "$WIN_ID" | grep geometry | sed 's/^.*geometry *//;s/+.*//;s/-.*//'`
+  X_CORNER=0
+  Y_CORNER=0
+  shift
+else
+  #  WIN_ID=`xdotool getwindowfocus`
+  # click to select window
+  # geometry is unreliable for e.g. terminal windows, so use width and height
+  # instead which are guaranteed pixels i think
+  WIN_ID=`xwininfo -int|grep Window\ id|sed 's/.*Window id\: //;s/ .*//'`
+
+  if [[ "$INCLUDE_BORDERS" -ne 1 ]]; then
+    WIDTH=`wininfoattr "$WIN_ID" 'Width'`
+    HEIGHT=`wininfoattr "$WIN_ID" 'Height'`
+    
+    X_CORNER=`wininfoattr "$WIN_ID" 'Absolute upper-left X'`
+    Y_CORNER=`wininfoattr "$WIN_ID" 'Absolute upper-left Y'`
+    BORDER_WIDTH_LEFT=0
+    BORDER_WIDTH_RIGHT=0
+    BORDER_HEIGHT_TOP=0
+    BORDER_HEIGHT_BOTTOM=0
+  else
+    # Factor in window decorations.
+    # Thanks to stack overflow for the xprop command, I wasn't able to find
+    # out any other ways to get decoration info. (X protocol limitations, yay)
+    EXTENTS="$(xprop _NET_FRAME_EXTENTS -id "$WIN_ID")"
+    BORDER_WIDTH_LEFT="$(echo $EXTENTS | cut -d ',' -f 1 | sed 's/.*= *//')" # width of left border
+    BORDER_WIDTH_RIGHT="$(echo $EXTENTS | cut -d ',' -f 2 | sed 's/ *//')" # width of right border
+    BORDER_HEIGHT_TOP="$(echo $EXTENTS | cut -d ',' -f 3 | sed 's/ *//')"  # height of title bar
+    BORDER_HEIGHT_BOTTOM="$(echo $EXTENTS | cut -d ',' -f 4 | sed 's/ *//')" # height of bottom border
+
+    WIDTH=$((`wininfoattr "$WIN_ID" 'Width'`+"$BORDER_WIDTH_RIGHT"+"$BORDER_WIDTH_LEFT"))
+    X_CORNER=$((`wininfoattr "$WIN_ID" 'Absolute upper-left X'`-"$BORDER_WIDTH_LEFT"))
+    HEIGHT=$((`wininfoattr "$WIN_ID" 'Height'`+"$BORDER_HEIGHT_BOTTOM"+"$BORDER_HEIGHT_TOP"))
+    Y_CORNER=$((`wininfoattr "$WIN_ID" 'Absolute upper-left Y'`-"$BORDER_HEIGHT_TOP"))
+  fi
+  SCREEN_HEIGHT=`xwininfo -root -int | grep Height | sed 's/.*\: *//'`
+  SCREEN_WIDTH=`xwininfo -root -int | grep Width | sed 's/.*\: *//'`
+  # catch things that would make x11grab fail, like off-screen window corners.
+  # to correct anything off the top or the left, adjust CORNER variables.
+  # to correct anything off the bottom or the right, adjust WIDTH or HEIGHT.
+  # window goes off left side of screen
+  if [[ "$X_CORNER" -lt 0 ]]; then
+    WIDTH=$(("$WIDTH"+"$X_CORNER")) # subtract unseen area from total width.
+    X_CORNER=0
+  fi
+  # window goes off top of screen
+  if [[ "$Y_CORNER" -lt 0 ]]; then
+    HEIGHT=$(("$HEIGHT"+"$Y_CORNER")) # subtract unseen area from total height.
+    Y_CORNER=0
+  fi
+  # window goes off right of screen
+  if [[ $(("$WIDTH"+"$X_CORNER")) -gt "$SCREEN_WIDTH" ]]; then
+    WIDTH=$(("$SCREEN_WIDTH"-"$X_CORNER"))
+  fi
+  # window goes off bottom of screen
+  if [[ $(("$HEIGHT"+"$Y_CORNER")) -gt "$SCREEN_HEIGHT" ]]; then
+    HEIGHT=$(("$SCREEN_HEIGHT"-"$Y_CORNER"))
+  fi
+
+  RESOLUTION="$WIDTH"'x'"$HEIGHT"
+fi
+dograb()
+{
+  # args: [destination-dir] [filename]
+# ffmpeg command dissected
+# -loglevel warning		Don't print anything except warnings/errors.
+# -video_size			Tell ffmpeg x11grab the size of the area to grab.
+# -f x11grab			Use x11grab for video capture
+# -draw_mouse 0			Prevent x11grab from drawing the cursor over the
+#						screenshot
+# -i 					Input (X11 display and corner information)
+# -frames:v 1			Only write a single frame (since this isn't a video).
+# -s					Set output frame size
+# -f image2				Force 'image2' output format. IIRC, 'image' is a
+#						long-obsolete format.
+# -y					Overwrite (assume 'yes' to questions).
+# $1					Pass output file name argument
+if [ -z "$2" ]; then
+    FILENAME="$1""/""$(date +'Screenshot at %Y-%m-%d %H-%M-%S')"".png"
+else
+    FILENAME="$1""/""$2"
+fi
+ffmpeg -loglevel warning -video_size "$RESOLUTION" -f x11grab -draw_mouse 0 -i "$DISPLAY"'+'"$X_CORNER"','"$Y_CORNER" -frames:v 1 -s "$RESOLUTION" -f image2 -y "$FILENAME"
+echo 'Image saved as '"$FILENAME"'.'
+
+}
+dograb $@
