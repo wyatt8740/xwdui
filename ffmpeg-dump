@@ -3,6 +3,7 @@
 # usage:
 # -f: screenshot of entire screen
 # -b: include borders of selected window (default: no decorations)
+# Get more details on usage from running the program with '-h' or '--help'.
 
 wininfoattr()
 {
@@ -50,10 +51,12 @@ while [[ $PARSING -eq 1 ]]; do
       1>&2 echo "If FILENAME is not specified, then the screenshot will be saved in"
       1>&2 echo 'OUTPUT-DIR and given a name in the format:'
       1>&2 echo '"Screenshot at YYYY-MM-DD HH-MM-DD.png".'
+      1>&2 echo "Unless otherwise requested, default behavior is to allow the user to click"
+      1>&2 echo "the window to be screenshotted. Other modes of operation are described below."
       1>&2 echo ""
       1>&2 echo "OPTIONS:"
       1>&2 echo "-b, --borders     Include window borders (decorations) in a window screenshot"
-      1>&2 echo "                    (needs to be used alongside -w)."
+      1>&2 echo "                    (can be used alongside -w or on its own)."
       1>&2 echo "                    Default: don't include window borders/decorations."
       1>&2 echo "-d, --decorations Synonyms for -b."
       1>&2 echo "-f, --fullscreen  Take screenshot of the entire screen instead of one window."
