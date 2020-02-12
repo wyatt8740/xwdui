@@ -1,5 +1,6 @@
 #! /bin/ksh93
-# full screen screenshot using ffmpeg x11grab
+# A full screen or individual window screenshot tool using ffmpeg's x11grab.
+# usage:
 # -f: screenshot of entire screen
 # -b: include borders of selected window (default: no decorations)
 
@@ -20,29 +21,66 @@ WIDTH=0
 HEIGHT=0
 RESOLUTION=""
 INCLUDE_BORDERS=0
-while [[ "$1" == -* ]]; do
+PARSING=1
+SHOW_CURSOR=0
+while [[ $PARSING -eq 1 ]]; do
   case "$1" in
     '-b' | '--borders' | '-d' | '--decorations')
-      INCLUDE_BORDERS=1
+      INCLUDE_BORDERS=1; export INCLUDE_BORDERS
+      shift
       ;;
     '-f' | '--full' | '--fullscreen' )
-      FULL_SCR=1
+      FULL_SCR=1; export FULL_SCR
+      shift
+      ;;
+    '-m' | '--show-cursor')
+      SHOW_CURSOR=1; export SHOW_CURSOR
+      shift
+      ;;
+    '-w' | '--window')
+      shift
+      WIN_ID="$1"; export WIN_ID
+      shift
+      ;;
+    '-h' | '--help')
+      1>&2 echo "$0"
+      1>&2 echo "A full screen or individual-window screenshot tool using ffmpeg/x11grab."
+      1>&2 echo "Usage:"
+      1>&2 echo "$(basename "$0")"' [OPTIONS] OUTPUT-DIR [FILENAME]'
+      1>&2 echo "If FILENAME is not specified, then the screenshot will be saved in"
+      1>&2 echo 'OUTPUT-DIR and given a name in the format:'
+      1>&2 echo '"Screenshot at YYYY-MM-DD HH-MM-DD.png".'
+      1>&2 echo ""
+      1>&2 echo "OPTIONS:"
+      1>&2 echo "-b, --borders     Include window borders (decorations) in a window screenshot"
+      1>&2 echo "                    (needs to be used alongside -w)."
+      1>&2 echo "                    Default: don't include window borders/decorations."
+      1>&2 echo "-d, --decorations Synonyms for -b."
+      1>&2 echo "-f, --fullscreen  Take screenshot of the entire screen instead of one window."
+      1>&2 echo "-h, --help        Show this message and exit."
+      1>&2 echo "-m, --show-cursor Show mouse pointer in screenshot (default: hide pointer)."
+      1>&2 echo "-w, --window      Take a screenshot of only one window selected by integer"
+      1>&2 echo "                  window ID."
+      exit 0
+      ;;
+    *)
+      PARSING=0; export PARSING
       ;;
   esac
-  shift
 done
 if [[ "$FULL_SCR" -eq 1 ]]; then
   WIN_ID=`xwininfo -root -int|grep Window\ id|sed 's/.*Window id\: //;s/ .*//'`
   RESOLUTION=`xwininfo -id "$WIN_ID" | grep geometry | sed 's/^.*geometry *//;s/+.*//;s/-.*//'`
   X_CORNER=0
   Y_CORNER=0
-  shift
 else
   #  WIN_ID=`xdotool getwindowfocus`
   # click to select window
   # geometry is unreliable for e.g. terminal windows, so use width and height
   # instead which are guaranteed pixels i think
-  WIN_ID=`xwininfo -int|grep Window\ id|sed 's/.*Window id\: //;s/ .*//'`
+  if [[ "$WIN_ID" -eq 0 ]]; then # can be set by -w at run-time
+    WIN_ID=`xwininfo -int|grep Window\ id|sed 's/.*Window id\: //;s/ .*//'`
+  fi
 
   if [[ "$INCLUDE_BORDERS" -ne 1 ]]; then
     WIDTH=`wininfoattr "$WIN_ID" 'Width'`
@@ -98,26 +136,34 @@ fi
 dograb()
 {
   # args: [destination-dir] [filename]
-# ffmpeg command dissected
-# -loglevel warning		Don't print anything except warnings/errors.
-# -video_size			Tell ffmpeg x11grab the size of the area to grab.
-# -f x11grab			Use x11grab for video capture
-# -draw_mouse 0			Prevent x11grab from drawing the cursor over the
-#						screenshot
-# -i 					Input (X11 display and corner information)
-# -frames:v 1			Only write a single frame (since this isn't a video).
-# -s					Set output frame size
-# -f image2				Force 'image2' output format. IIRC, 'image' is a
-#						long-obsolete format.
-# -y					Overwrite (assume 'yes' to questions).
-# $1					Pass output file name argument
-if [ -z "$2" ]; then
-    FILENAME="$1""/""$(date +'Screenshot at %Y-%m-%d %H-%M-%S')"".png"
-else
+  # ffmpeg command dissected
+  # -loglevel warning		Don't print anything except warnings/errors.
+  # -video_size			Tell ffmpeg x11grab the size of the area to grab.
+  # -f x11grab			Use x11grab for video capture
+  # -draw_mouse 0			Prevent x11grab from drawing the cursor over the
+  #						screenshot
+  # -i 					Input (X11 display and corner information)
+  # -frames:v 1			Only write a single frame (since this isn't a video).
+  # -s					Set output frame size
+  # -f image2				Force 'image2' output format. IIRC, 'image' is a
+  #						long-obsolete format.
+  # -y					Overwrite (assume 'yes' to questions).
+  # $1					Pass output file name argument
+  if [[ "$#" -ge 2 ]]; then
     FILENAME="$1""/""$2"
-fi
-ffmpeg -loglevel warning -video_size "$RESOLUTION" -f x11grab -draw_mouse 0 -i "$DISPLAY"'+'"$X_CORNER"','"$Y_CORNER" -frames:v 1 -s "$RESOLUTION" -f image2 -y "$FILENAME"
-echo 'Image saved as '"$FILENAME"'.'
+  else
+    FILENAME="$1""/""$(date +'Screenshot at %Y-%m-%d %H-%M-%S')"".png"
+  fi
+  if [[ "$SHOW_CURSOR" -eq 1 ]]; then
+    MOUSEPARAM_A=''; export MOUSEPARAM_A
+    MOUSEPARAM_B=''; export MOUSEPARAM_B
+  else
+    MOUSEPARAM_A='-draw_mouse'; export MOUSEPARAM_A
+    MOUSEPARAM_B='0'; export MOUSEPARAM_B
+  fi
+  echo PARAMS: "$@"
+  ffmpeg -loglevel warning -video_size "$RESOLUTION" -f x11grab $MOUSEPARAM_A $MOUSEPARAM_B -i "$DISPLAY"'+'"$X_CORNER"','"$Y_CORNER" -frames:v 1 -s "$RESOLUTION" -f image2 -y "$FILENAME"
+  echo 'Image saved as '"$FILENAME"'.'
 
 }
-dograb $@
+dograb "$@"

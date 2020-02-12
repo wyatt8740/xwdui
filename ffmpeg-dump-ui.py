@@ -4,7 +4,7 @@ import os
 import sys
 
 # path to the file which will contain the last run's settings, if set.
-fileName="/home/foo/.xwdui"
+fileName="/home/wyatt/.xwdui"
 # these vars are global because the script's too small for me to want to care
 # otherwise.
 targetPath=''
@@ -90,7 +90,19 @@ result = app.mainloop()
 # result[0] is the directory path
 # result[1] is the filename (if empty, ignored).
 print("you entered: "+result[0]+" "+result[1])
-if not result[1]: # if the filename string is empty
-    os.system("ffmpeg-dump -b "+'"'+result[0]+'"')
-else: # if the filename string is not empty
-    os.system("ffmpeg-dump -b "+'"'+result[0]+'"'+" "+'"'+result[1]+'"')
+
+# -b used to show window decorations
+# -m would show cursor if added
+params = [ 'ffmpeg-dump', '-b', result[0] ]
+if result[1]:
+    params.append(result[1])
+
+os.execvp('ffmpeg-dump', params)
+
+# prevent injections by not using system()
+# if not result[1]: # if the filename string is empty
+# #    os.system("ffmpeg-dump "+'"'+result[0]+'"')
+#     os.system("ffmpeg-dump -b "+'"'+result[0]+'"')
+# else: # if the filename string is not empty
+# #    os.system("ffmpeg-dump "+'"'+result[0]+'"'+" "+'"'+result[1]+'"')
+#     os.system("ffmpeg-dump -b "+'"'+result[0]+'"'+" "+'"'+result[1]+'"')
