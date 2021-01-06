@@ -15,6 +15,9 @@ If you are having it just not start up properly, try forging a 'last run'
 file. That's the file name set in the poorly-named 'fileName' variable in the
 .py scripts.
 
+You can now use a script I wrote called `create-state-file` to automate this,
+or manually do the following. The file should be `${HOME}/.xwdui`.
+
 The file should have the format of:
 ````
 [line 1] /path/to/directory/to/save/screenshots/in/ [newline]

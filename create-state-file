@@ -1,0 +1,6 @@
+#! /usr/bin/env sh
+if [ ! -e "$HOME"'/.xwdui' ]; then
+  echo "$HOME" > "$HOME"'/.xwdui'
+else
+  1>&2 echo 'E: state file already exists at '"$HOME"'/.xwdui; not creating.'
+fi
