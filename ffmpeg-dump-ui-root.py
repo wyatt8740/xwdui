@@ -4,7 +4,7 @@ import os
 import sys
 
 # path to the file which will contain the last run's settings, if set.
-fileName="/home/wyatt/.xwdui"
+fileName=os.path.expanduser("~") + "/.xwdui"
 # these vars are global because the script's too small for me to want to care
 # otherwise.
 targetPath=''
@@ -79,25 +79,47 @@ class MyApp(tk.Tk):
 
     def mainloop(self):
         mainWin=tk.Tk.mainloop(self)
-        return [self.string, self.string2]
+        # if window is closed without specifying anything this might not work
+        try:
+            self.string
+        except AttributeError:
+            return
+        else:
+            try:
+                self.string2
+            except AttributeError:
+                return [self.string]
+            else:
+                return [self.string, self.string2]
 
 # Run the thing
 app = MyApp()
+app.title("Screenshot a Window");
 # Allow pressing the enter/return key instead of clicking "Take a Screenshot!"
 app.bind('<Return>',app.closeEnter)
 # 'Result' is a list of strings.
 result = app.mainloop()
 # result[0] is the directory path
 # result[1] is the filename (if empty, ignored).
-print("you entered: "+result[0]+" "+result[1])
+try:
+    result[0]
+except:
+    pass
+else:
+    try:
+        result[1]
+    except:
+        print("you entered: "+result[0])
+    else:
+        print("you entered: "+result[0]+" "+result[1])
 
-# -f used to screenshot entire display
-# -m would show cursor if added
-params = [ 'ffmpeg-dump', '-f', result[0] ]
-if result[1]:
-    params.append(result[1])
+    # -f used to screenshot entire display
+    # -m would show cursor if added
+    params = [ 'ffmpeg-dump', '-f', result[0] ]
+    if result[1]:
+        params.append(result[1])
 
-os.execvp('ffmpeg-dump', params)
+    os.execvp('ffmpeg-dump', params)
 
 # prevent injections by not using system()
 # if not result[1]: # if the filename string is empty

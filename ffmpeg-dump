@@ -1,9 +1,18 @@
-#! /bin/ksh93
+#! /usr/bin/env ksh93
 # A full screen or individual window screenshot tool using ffmpeg's x11grab.
 # usage:
 # -f: screenshot of entire screen
 # -b: include borders of selected window (default: no decorations)
 # Get more details on usage from running the program with '-h' or '--help'.
+
+# Requires `xwininfo`, `xprop`, `ffmpeg`, `sed`, `cut`, and `grep`.
+# I think it should work with bash or maybe even a plain POSIX shell in
+# addition to ksh93 which I wrote it for.
+
+# It can optionally use `xdotool` to try to give focus screenshotted window;
+# presently, this is just done automatically if xdotool is detected on the
+# system, but if it bothers anyone I'd be happy to make it a configuration
+# option or run-time flag.
 
 wininfoattr()
 {
@@ -22,6 +31,7 @@ WIDTH=0
 HEIGHT=0
 RESOLUTION=""
 INCLUDE_BORDERS=0
+DELAY_TIME=0
 PARSING=1
 SHOW_CURSOR=0
 while [[ $PARSING -eq 1 ]]; do
@@ -30,8 +40,21 @@ while [[ $PARSING -eq 1 ]]; do
       INCLUDE_BORDERS=1; export INCLUDE_BORDERS
       shift
       ;;
+    '-t' | '--timer' | '--delay' )
+      if [[ "$#" -gt 1 ]]; then
+        DELAY_TIME="$2"
+        shift 2
+      else
+        # bug: actually check if a number was passed, since this error message
+        # will NOT be generated if timer is not the last argument and
+        # no delay will be used.
+        1>&2 echo "Error: No time was specified for timer. Exiting."
+        exit 1
+      fi
+      ;;
     '-f' | '--full' | '--fullscreen' )
       FULL_SCR=1; export FULL_SCR
+      DELAY_TIME=1
       shift
       ;;
     '-m' | '--show-cursor')
@@ -62,6 +85,7 @@ while [[ $PARSING -eq 1 ]]; do
       1>&2 echo "-f, --fullscreen  Take screenshot of the entire screen instead of one window."
       1>&2 echo "-h, --help        Show this message and exit."
       1>&2 echo "-m, --show-cursor Show mouse pointer in screenshot (default: hide pointer)."
+      1>&2 echo "-t, --timer [int] Wait [int] seconds before capturing."
       1>&2 echo "-w, --window      Take a screenshot of only one window selected by integer"
       1>&2 echo "                  window ID."
       exit 0
@@ -96,10 +120,26 @@ else
     BORDER_HEIGHT_TOP=0
     BORDER_HEIGHT_BOTTOM=0
   else
+    # check if we have xdotool for a little bonus feature (in my opinion)
+    2>/dev/null type xdotool > /dev/null
+    if [[ "$?" -eq 0 ]]; then
+      # If we have xdotool, we can use it to set the active window focus.
+      # if we don't have xdotool, don't worry about it; it's not too important.
+      # Basically, though, since the GUI wrapper tool I wrote for this script
+      # will steal the input focus, we can just do this in order to try to
+      # return it to the window we were using afterwards without requiring any
+      # further user actions.
+      # Note that this might not pop the window to the topmost level; it just
+      # returns keyboard focus and stuff.
+      xdotool windowfocus "$WIN_ID"
+    fi
+
     # Factor in window decorations.
     # Thanks to stack overflow for the xprop command, I wasn't able to find
     # out any other ways to get decoration info. (X protocol limitations, yay)
     EXTENTS="$(xprop _NET_FRAME_EXTENTS -id "$WIN_ID")"
+    # BORDER_WIDTH_LEFT="$(echo $EXTENTS | sed 's/.* = //;s/,.*//')"
+    # BORDER_WIDTH_RIGHT="$()"
     BORDER_WIDTH_LEFT="$(echo $EXTENTS | cut -d ',' -f 1 | sed 's/.*= *//')" # width of left border
     BORDER_WIDTH_RIGHT="$(echo $EXTENTS | cut -d ',' -f 2 | sed 's/ *//')" # width of right border
     BORDER_HEIGHT_TOP="$(echo $EXTENTS | cut -d ',' -f 3 | sed 's/ *//')"  # height of title bar
@@ -165,8 +205,15 @@ dograb()
     MOUSEPARAM_B='0'; export MOUSEPARAM_B
   fi
   echo PARAMS: "$@"
-  ffmpeg -loglevel warning -video_size "$RESOLUTION" -f x11grab $MOUSEPARAM_A $MOUSEPARAM_B -i "$DISPLAY"'+'"$X_CORNER"','"$Y_CORNER" -frames:v 1 -s "$RESOLUTION" -f image2 -y "$FILENAME"
+  #  ffmpeg -loglevel warning -video_size "$RESOLUTION" -f x11grab $MOUSEPARAM_A $MOUSEPARAM_B -i "$DISPLAY"'+'"$X_CORNER"','"$Y_CORNER" -frames:v 1 -s "$RESOLUTION" -f image2 -y "$FILENAME"
+  # imagemagick convert seems to give better compression. we output uncompressed png from ffmpeg using -compression_level 0 and then let imagemagick do all the heavy lifting.
+  ffmpeg -loglevel warning -video_size "$RESOLUTION" -f x11grab $MOUSEPARAM_A $MOUSEPARAM_B -i "$DISPLAY"'+'"$X_CORNER"','"$Y_CORNER" -frames:v 1 -s "$RESOLUTION" -f image2 -compression_level 0 -vcodec png - | convert png:- "$FILENAME"
   echo 'Image saved as '"$FILENAME"'.'
-
+  exit
 }
+if [[ "$DELAY_TIME" -gt 0 ]]; then
+  # not necessary to have behind the 'if' gate, necessarily, but this might
+  # actually improve speed by avoiding fetching a program from the disk.
+  sleep "$DELAY_TIME"
+fi
 dograb "$@"

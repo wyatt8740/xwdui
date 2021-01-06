@@ -4,7 +4,7 @@ import os
 import sys
 
 # path to the file which will contain the last run's settings, if set.
-fileName="/home/foo/.xwdui"
+fileName=os.path.expanduser("~") + "/.xwdui"
 # these vars are global because the script's too small for me to want to care
 # otherwise.
 targetPath=''

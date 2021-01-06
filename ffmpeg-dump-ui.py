@@ -1,10 +1,10 @@
-#! /bin/env python2.7
-import Tkinter as tk
+#! /bin/env python3
+import tkinter as tk
 import os
 import sys
 
 # path to the file which will contain the last run's settings, if set.
-fileName="/home/wyatt/.xwdui"
+fileName=os.path.expanduser("~") + "/.xwdui"
 # these vars are global because the script's too small for me to want to care
 # otherwise.
 targetPath=''
@@ -79,25 +79,36 @@ class MyApp(tk.Tk):
 
     def mainloop(self):
         mainWin=tk.Tk.mainloop(self)
-        return [self.string, self.string2]
+        try:
+            self.string
+        except AttributeError:
+            return
+        else:
+            return [self.string, self.string2]
 
 # Run the thing
 app = MyApp()
+app.title("Screenshot a Window")
 # Allow pressing the enter/return key instead of clicking "Take a Screenshot!"
 app.bind('<Return>',app.closeEnter)
 # 'Result' is a list of strings.
 result = app.mainloop()
 # result[0] is the directory path
 # result[1] is the filename (if empty, ignored).
-print("you entered: "+result[0]+" "+result[1])
+try:
+    result[0]
+except:
+    pass
+else:
+    print("you entered: "+result[0]+" "+result[1])
 
-# -b used to show window decorations
-# -m would show cursor if added
-params = [ 'ffmpeg-dump', '-b', result[0] ]
-if result[1]:
-    params.append(result[1])
+    # -b used to show window decorations
+    # -m would show cursor if added
+    params = [ 'ffmpeg-dump', '-b', result[0] ]
+    if result[1]:
+        params.append(result[1])
 
-os.execvp('ffmpeg-dump', params)
+    os.execvp('ffmpeg-dump', params)
 
 # prevent injections by not using system()
 # if not result[1]: # if the filename string is empty

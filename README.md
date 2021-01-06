@@ -3,9 +3,13 @@ xwdui
 
 A tiny crummy UI for `xwd`, the X Window Dump utility (It takes screenshots).
 
+There's also a newer version which uses `ffmpeg` instead, which appears
+to be more suited to taking screenshots on systems using compositors.
+
 You will have to change the path to the file to save the last run's settings
 in from within the .py scripts. Other than that it shouldn't be too difficult
-to set up. Ask if you have problems.
+to set up. Ask if you have problems. I mostly wrote this for myself so it's
+definitely a bit strange to set up. Once set up it should work fine though.
 
 If you are having it just not start up properly, try forging a 'last run'
 file. That's the file name set in the poorly-named 'fileName' variable in the
