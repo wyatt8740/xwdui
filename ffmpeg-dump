@@ -14,6 +14,30 @@
 # system, but if it bothers anyone I'd be happy to make it a configuration
 # option or run-time flag.
 
+help_text() {
+       echo "$0"
+       echo "A full screen or individual-window screenshot tool using ffmpeg/x11grab."
+       echo "Usage:"
+       echo "$(basename "$0")"' [OPTIONS] OUTPUT-DIR [FILENAME]'
+       echo "If FILENAME is not specified, then the screenshot will be saved in"
+       echo 'OUTPUT-DIR and given a name in the format:'
+       echo '"Screenshot at YYYY-MM-DD HH-MM-DD.png".'
+       echo "Unless otherwise requested, default behavior is to allow the user to click"
+       echo "the window to be screenshotted. Other modes of operation are described below."
+       echo ""
+       echo "OPTIONS:"
+       echo "-b, --borders     Include window borders (decorations) in a window screenshot"
+       echo "                    (can be used alongside -w or on its own)."
+       echo "                    Default: don't include window borders/decorations."
+       echo "-d, --decorations Synonyms for -b."
+       echo "-f, --fullscreen  Take screenshot of the entire screen instead of one window."
+       echo "-h, --help        Show this message and exit."
+       echo "-m, --show-cursor Show mouse pointer in screenshot (default: hide pointer)."
+       echo "-t, --timer [int] Wait [int] seconds before capturing."
+       echo "-w, --window      Take a screenshot of only one window selected by integer"
+       echo "                  window ID."
+}
+
 wininfoattr()
 {
   # $1 is window id
@@ -34,6 +58,13 @@ INCLUDE_BORDERS=0
 DELAY_TIME=0
 PARSING=1
 SHOW_CURSOR=0
+
+if [ "$#" -eq 0 ]; then
+  1>&2 echo "Error: no arguments given."
+  1>&2 help_text
+  exit 1
+fi
+
 while [[ $PARSING -eq 1 ]]; do
   case "$1" in
     '-b' | '--borders' | '-d' | '--decorations')
@@ -54,7 +85,9 @@ while [[ $PARSING -eq 1 ]]; do
       ;;
     '-f' | '--full' | '--fullscreen' )
       FULL_SCR=1; export FULL_SCR
-      DELAY_TIME=1
+      if [ "$DELAY_TIME" -eq 0 ]; then
+        DELAY_TIME=1
+      fi
       shift
       ;;
     '-m' | '--show-cursor')
@@ -67,27 +100,7 @@ while [[ $PARSING -eq 1 ]]; do
       shift
       ;;
     '-h' | '--help')
-      1>&2 echo "$0"
-      1>&2 echo "A full screen or individual-window screenshot tool using ffmpeg/x11grab."
-      1>&2 echo "Usage:"
-      1>&2 echo "$(basename "$0")"' [OPTIONS] OUTPUT-DIR [FILENAME]'
-      1>&2 echo "If FILENAME is not specified, then the screenshot will be saved in"
-      1>&2 echo 'OUTPUT-DIR and given a name in the format:'
-      1>&2 echo '"Screenshot at YYYY-MM-DD HH-MM-DD.png".'
-      1>&2 echo "Unless otherwise requested, default behavior is to allow the user to click"
-      1>&2 echo "the window to be screenshotted. Other modes of operation are described below."
-      1>&2 echo ""
-      1>&2 echo "OPTIONS:"
-      1>&2 echo "-b, --borders     Include window borders (decorations) in a window screenshot"
-      1>&2 echo "                    (can be used alongside -w or on its own)."
-      1>&2 echo "                    Default: don't include window borders/decorations."
-      1>&2 echo "-d, --decorations Synonyms for -b."
-      1>&2 echo "-f, --fullscreen  Take screenshot of the entire screen instead of one window."
-      1>&2 echo "-h, --help        Show this message and exit."
-      1>&2 echo "-m, --show-cursor Show mouse pointer in screenshot (default: hide pointer)."
-      1>&2 echo "-t, --timer [int] Wait [int] seconds before capturing."
-      1>&2 echo "-w, --window      Take a screenshot of only one window selected by integer"
-      1>&2 echo "                  window ID."
+      help_text
       exit 0
       ;;
     *)
@@ -197,17 +210,10 @@ dograb()
   else
     FILENAME="$1""/""$(date +'Screenshot at %Y-%m-%d %H-%M-%S')"".png"
   fi
-  if [[ "$SHOW_CURSOR" -eq 1 ]]; then
-    MOUSEPARAM_A=''; export MOUSEPARAM_A
-    MOUSEPARAM_B=''; export MOUSEPARAM_B
-  else
-    MOUSEPARAM_A='-draw_mouse'; export MOUSEPARAM_A
-    MOUSEPARAM_B='0'; export MOUSEPARAM_B
-  fi
   echo PARAMS: "$@"
   #  ffmpeg -loglevel warning -video_size "$RESOLUTION" -f x11grab $MOUSEPARAM_A $MOUSEPARAM_B -i "$DISPLAY"'+'"$X_CORNER"','"$Y_CORNER" -frames:v 1 -s "$RESOLUTION" -f image2 -y "$FILENAME"
   # imagemagick convert seems to give better compression. we output uncompressed png from ffmpeg using -compression_level 0 and then let imagemagick do all the heavy lifting.
-  ffmpeg -loglevel warning -video_size "$RESOLUTION" -f x11grab $MOUSEPARAM_A $MOUSEPARAM_B -i "$DISPLAY"'+'"$X_CORNER"','"$Y_CORNER" -frames:v 1 -s "$RESOLUTION" -f image2 -compression_level 0 -vcodec png - | convert png:- "$FILENAME"
+  ffmpeg -loglevel warning -video_size "$RESOLUTION" -f x11grab -draw_mouse "$SHOW_CURSOR" -i "$DISPLAY"'+'"$X_CORNER"','"$Y_CORNER" -frames:v 1 -s "$RESOLUTION" -f image2 -compression_level 0 -vcodec png - | convert png:- "$FILENAME"
   echo 'Image saved as '"$FILENAME"'.'
   exit
 }
