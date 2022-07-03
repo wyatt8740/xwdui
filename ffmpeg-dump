@@ -6,8 +6,10 @@
 # Get more details on usage from running the program with '-h' or '--help'.
 
 # Requires `xwininfo`, `xprop`, `ffmpeg`, `sed`, `cut`, and `grep`.
+# The first two are installed in the 'x11-utils' package on Debian and similar.
 # I think it should work with bash or maybe even a plain POSIX shell in
-# addition to ksh93 which I wrote it for.
+# addition to ksh93 which I wrote it for, if you replace the
+# '#! /usr/bin/env ksh93' at the top with '#! /bin/sh' for instance.
 
 # It can optionally use `xdotool` to try to give focus screenshotted window;
 # presently, this is just done automatically if xdotool is detected on the
@@ -68,7 +70,7 @@ fi
 while [[ $PARSING -eq 1 ]]; do
   case "$1" in
     '-b' | '--borders' | '-d' | '--decorations')
-      INCLUDE_BORDERS=1; export INCLUDE_BORDERS
+      INCLUDE_BORDERS=1
       shift
       ;;
     '-t' | '--timer' | '--delay' )
@@ -84,19 +86,19 @@ while [[ $PARSING -eq 1 ]]; do
       fi
       ;;
     '-f' | '--full' | '--fullscreen' )
-      FULL_SCR=1; export FULL_SCR
+      FULL_SCR=1
       if [ "$DELAY_TIME" -eq 0 ]; then
         DELAY_TIME=1
       fi
       shift
       ;;
     '-m' | '--show-cursor')
-      SHOW_CURSOR=1; export SHOW_CURSOR
+      SHOW_CURSOR=1
       shift
       ;;
     '-w' | '--window')
       shift
-      WIN_ID="$1"; export WIN_ID
+      WIN_ID="$1"
       shift
       ;;
     '-h' | '--help')
@@ -104,7 +106,7 @@ while [[ $PARSING -eq 1 ]]; do
       exit 0
       ;;
     *)
-      PARSING=0; export PARSING
+      PARSING=0
       ;;
   esac
 done
@@ -114,10 +116,13 @@ if [[ "$FULL_SCR" -eq 1 ]]; then
   X_CORNER=0
   Y_CORNER=0
 else
-  #  WIN_ID=`xdotool getwindowfocus`
   # click to select window
   # geometry is unreliable for e.g. terminal windows, so use width and height
-  # instead which are guaranteed pixels i think
+  # instead, which are guaranteed pixels i think.
+
+  #  WIN_ID=`xdotool getwindowfocus`
+  # xwininfo comes in x11-utils, so the xdotool dependency can be avoided if
+  # we use it instead.
   if [[ "$WIN_ID" -eq 0 ]]; then # can be set by -w at run-time
     WIN_ID=`xwininfo -int|grep Window\ id|sed 's/.*Window id\: //;s/ .*//'`
   fi
