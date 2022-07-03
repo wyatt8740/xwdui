@@ -6,6 +6,7 @@
 # Get more details on usage from running the program with '-h' or '--help'.
 
 # Requires `xwininfo`, `xprop`, `ffmpeg`, `sed`, `cut`, and `grep`.
+# `xdotool` is an optional dependency, but recommended.
 # The first two are installed in the 'x11-utils' package on Debian and similar.
 # I think it should work with bash or maybe even a plain POSIX shell in
 # addition to ksh93 which I wrote it for, if you replace the
