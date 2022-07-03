@@ -8,9 +8,10 @@
 # Requires `xwininfo`, `xprop`, `ffmpeg`, `sed`, `cut`, and `grep`.
 # `xdotool` is an optional dependency, but recommended.
 # The first two are installed in the 'x11-utils' package on Debian and similar.
-# I think it should work with bash or maybe even a plain POSIX shell in
-# addition to ksh93 which I wrote it for, if you replace the
-# '#! /usr/bin/env ksh93' at the top with '#! /bin/sh' for instance.
+# I think it should work with bash as well as to ksh93 (which I wrote it for);
+# to try it, replace the '#! /usr/bin/env ksh93' at the top with '#! /bin/bash'
+# for instance. I think for POSIX shell (/bin/sh) to work I'd have to rewrite
+# the $(( )) math operations to use 'expr' or 'bc' instead.
 
 # It can optionally use `xdotool` to try to give focus screenshotted window;
 # presently, this is just done automatically if xdotool is detected on the
